@@ -61,7 +61,7 @@ class SchedulerService{
         $schedulerHelper = new SchedulerHelper($courses_main, $halls_main);
         $batches = $schedulerHelper->setData()->execute();
 
-        $timed_batches = $this->appendTimeToBatches($batches);
+        [$timed_batches, $dailyBatches] = $this->appendTimeToBatches($batches);
         $halls = $schedulerHelper->halls;
         $halls = $schedulerHelper->halls;
 
@@ -69,7 +69,7 @@ class SchedulerService{
             $timed_batches[$key]['formatted'] = $this->formatToHuman($batch);
         }
 
-        return [$timed_batches, $halls, $courses_main];
+        return [$timed_batches, $halls, $courses_main, $dailyBatches];
     }
 
     public function formatToHuman(array $data):array {
@@ -94,6 +94,48 @@ class SchedulerService{
     }
 
     public function appendTimeToBatches($batches){
+        $start_time = strtotime('09:00');
+
+        $formattedData = [];
+        $current_time = $start_time;
+        $day = 1;
+        $dailyBatches = [];
+
+        foreach ($batches as $item) {
+            $durations = [];
+            foreach($item as $ite){
+                $course = Course::currentSession()->where('name', $ite['course'])->where('students', $ite['capacity'])->first();
+                $durations[] = $course->duration ?? 30;
+            }
+            $mins = max($durations);
+            // Format the time
+            $time = date('H:i A', $current_time);
+
+            // Increment the current time by 30 minutes
+            $current_time += ($mins * 60);
+            $stop = date('H:i A', $current_time);
+
+            // Add the time to the item
+            $item[0]['time'] = "Day $day : $time - $stop";
+            // $col_items = collect($item);
+            // dd($col_items->where('course', 'AST232'));
+            // Add the item to the formatted data
+            $formattedData[] = $item;
+
+            // Check if it's past 2:00 PM
+            if (date('H:i', $current_time) == '14:00') {
+                // Move to the next day and reset the time to 9:00 AM
+                $current_time = strtotime('tomorrow 09:00');
+                $dailyBatches[$day] = $formattedData;
+                // $formattedData = [];
+                $day++;
+            }
+        }
+
+        return [$formattedData, $dailyBatches];
+    }
+
+    public function groupByDay($batches){
         $start_time = strtotime('09:00');
 
         $formattedData = [];

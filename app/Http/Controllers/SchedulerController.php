@@ -28,7 +28,7 @@ class SchedulerController extends Controller
 
     public function printSetup(){
         $session = Session::where('active', true)->first();
-        [$batches, $halls, $courses_main] = $this->schedulerService->liveGenerator();
+        [$batches, $halls, $courses_main, $dailyBatches] = $this->schedulerService->liveGenerator();
         $stats = [
             'department' => Department::count(),
             'course' => Course::where('session_id', $session->id)->count()
@@ -38,6 +38,12 @@ class SchedulerController extends Controller
     }
 
     public function generatedTimeTable(){
+        $session = Session::where('active', true)->first();
+        [$batches, $halls, $courses_main, $dailyBatches] = $this->schedulerService->liveGenerator();
+
+        $badge_per_day = 10;
+
+        dd($dailyBatches);
         return view('schedule.generated');
     }
 }
