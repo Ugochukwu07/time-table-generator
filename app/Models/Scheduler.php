@@ -12,7 +12,7 @@ class Scheduler extends Model
     protected $fillable = [
         'session_id', 'start_date',
         'end_date', 'start_time',
-        'end_time'
+        'end_time', 'semester'
     ];
 
     public function session(){

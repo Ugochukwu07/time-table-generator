@@ -31,30 +31,45 @@
                                     <label for="start_date">Exam Start Date <span class="text-danger">*</span></label>
                                     <input type="date" class="form-control" name="start_date" placeholder="Start Date" value="{{ old('start_date') }}">
                                     @error('start_date')
-                                    <small class="invalid-feedback d-block">Start Date is required</small>
+                                        <small class="invalid-feedback d-block">Start Date is required</small>
                                     @enderror
                                 </div>
                                 <div class="col-md-6">
                                     <label for="end_date">Expected Exam End Date <span class="text-danger">*</span></label>
                                     <input type="date" class="form-control" name="end_date" placeholder="End Date" value="{{ old('end_date') }}">
-                                    <small class="invalid-feedback d-block">Start Date is required</small>
-                                </div>
+                                    @error('end_date')
+                                        <small class="invalid-feedback d-block">Start Date is required</small>
+                                    @enderror                                </div>
                             </div>
                             <div class="row my-2">
                                 <div class="col-md-6">
                                     <label for="start_time">Exam Start Time <span class="text-danger">*</span></label>
                                     <input type="time" class="form-control" name="start_time" placeholder="Start Time" value="{{ old('start_time') }}">
-                                    <small class="invalid-feedback d-block">Start time is required</small>
-                                </div>
+                                    @error('start_time')
+                                        <small class="invalid-feedback d-block">Start Date is required</small>
+                                    @enderror                                </div>
                                 <div class="col-md-6">
                                     <label for="end_time">Expected Exam End Time <span class="text-danger">*</span></label>
                                     <input type="time" class="form-control" name="end_time" placeholder="End Time" value="{{ old('end_time') }}">
-                                    <small class="invalid-feedback d-block">End time is required</small>
-                                </div>
+                                    @error('end_time')
+                                        <small class="invalid-feedback d-block">Start Date is required</small>
+                                    @enderror                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <div class="col-md-12">
+                                    <label for="semester">Semester <span class="text-danger">*</span></label>
+                                    <select class="form-control" name="semester" id="semester">
+                                        <option @if(old('semester') == 'first') selected @endif value="first">First</option>
+                                        <option @if(old('semester') == 'second') selected @endif value="second">Second</option>
+                                    </select>
+                                    @error('semester')
+                                        <small class="invalid-feedback d-block">Start Date is required</small>
+                                    @enderror                                </div>
                             </div>
                             <div class="row my-2">
                                 <div class="col-md-6 mx-auto">
-                                    <div class="btn btn-success btn-block nav-pills">Generate</div>
+                                    <button class="btn btn-success btn-block nav-pills" type="submit">Generate</button>
+                                    {{-- <div ></div> --}}
                                 </div>
                             </div>
                         </form>

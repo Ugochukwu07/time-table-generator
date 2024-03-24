@@ -44,15 +44,6 @@ class SchedulerService{
             }
             $courses_main[$key] = $departments;
         }
-        // dd($courses_main);
-        // $courses_main = [
-        //     "CSC101" => [
-        //         "MAT" => 50, "CSC" => 300, "MCB" => 350, "BCH" => 200, "STA" => 100
-        //     ],
-        //     "MAT101" => [
-        //         "MAT" => 50, "CSC" => 300, "MCB" => 350, "BCH" => 200, "STA" => 100, "ECE" => 200, "CHEM" => 150, "PAE" => 200, "BOTANY" => 70, "ZOOLOGY" => 180, "PHYSICS" => 200,
-        //     ]
-        // ];
 
         $halls_main = [
             ["Hall 1", 120], ["Hall 2", 170], ["Hall 3", 75], ["Hall 4", 35]

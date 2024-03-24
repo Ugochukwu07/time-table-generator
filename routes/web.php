@@ -42,7 +42,7 @@ Route::controller(SchedulerController::class)->prefix('scheduler')->name('schedu
     Route::get('/print/settings', 'printSetup')->name('print.setup');
     Route::post('/setup', 'setUpSave')->name('setup.save');
 
-    Route::get('/generated/time-table', 'generatedTimeTable');
+    Route::get('/generated/time-table/{id}', 'generatedTimeTable')->name('generated.time-table');
 });
 
 Route::resource('sessions', SessionController::class);

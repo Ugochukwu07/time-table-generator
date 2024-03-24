@@ -1,6 +1,8 @@
 <?php
 namespace App\Helpers;
 
+use Illuminate\Support\Str;
+
 class SchedulerHelper{
     public array $halls;
     public bool $courses_dummy;
@@ -63,8 +65,9 @@ class SchedulerHelper{
     }
 
     //map batch
-    protected function mapBatch($course, $hall, $capacity, $department, $remaining) {
+    protected function mapBatch($course, $hall, $capacity, $department, $remaining, $id = 0) {
         return [
+            'id' => $id,
             "course" => $course,
             "hall" => $hall,
             "capacity" => $capacity,
