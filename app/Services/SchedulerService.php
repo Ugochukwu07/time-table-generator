@@ -54,11 +54,6 @@ class SchedulerService{
 
         [$timed_batches, $dailyBatches] = $this->appendTimeToBatches($batches);
         $halls = $schedulerHelper->halls;
-        $halls = $schedulerHelper->halls;
-
-        foreach($timed_batches as $key => $batch){
-            $timed_batches[$key]['formatted'] = $this->formatToHuman($batch);
-        }
 
         return [$timed_batches, $halls, $courses_main, $dailyBatches];
     }
@@ -85,12 +80,16 @@ class SchedulerService{
     }
 
     public function appendTimeToBatches($batches){
-        $start_time = strtotime('09:00');
+        $day_start_time = strtotime('09:00');
+        $day_end_time = strtotime('14:00');
+        $max_day_duration = $day_end_time - $day_start_time;
 
         $formattedData = [];
-        $current_time = $start_time;
+        $current_time = $day_start_time;
+        $elapsed_today = 0;
         $day = 1;
         $dailyBatches = [];
+        $dayBatchAccumulator = [];
 
         foreach ($batches as $item) {
             $durations = [];
@@ -102,25 +101,31 @@ class SchedulerService{
             // Format the time
             $time = date('H:i A', $current_time);
 
-            // Increment the current time by 30 minutes
+            // Increment the current time by the sitting's duration
             $current_time += ($mins * 60);
+            $elapsed_today += ($mins * 60);
             $stop = date('H:i A', $current_time);
 
-            // Add the time to the item
+            // Add the time and a human-readable summary to the item
             $item[0]['time'] = "Day $day : $time - $stop";
-            // $col_items = collect($item);
-            // dd($col_items->where('course', 'AST232'));
-            // Add the item to the formatted data
-            $formattedData[] = $item;
+            $item['formatted'] = $this->formatToHuman($item);
 
-            // Check if it's past 2:00 PM
-            if (date('H:i', $current_time) == '14:00') {
-                // Move to the next day and reset the time to 9:00 AM
-                $current_time = strtotime('tomorrow 09:00');
-                $dailyBatches[$day] = $formattedData;
-                // $formattedData = [];
+            $formattedData[] = $item;
+            $dayBatchAccumulator[] = $item;
+
+            // Once the day's allotted window (09:00-14:00) is used up, close out the day
+            if ($elapsed_today >= $max_day_duration) {
+                $dailyBatches[$day] = $dayBatchAccumulator;
+                $dayBatchAccumulator = [];
                 $day++;
+                $current_time = $day_start_time;
+                $elapsed_today = 0;
             }
+        }
+
+        // Flush whatever is left of the final, partially-filled day
+        if (!empty($dayBatchAccumulator)) {
+            $dailyBatches[$day] = $dayBatchAccumulator;
         }
 
         return [$formattedData, $dailyBatches];

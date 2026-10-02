@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>2022/2023 SECOND SEMESTER EXAMINATION TIMETABLE (REGULAR)</title>
+    <title>{{ $session->name }} {{ ucfirst($scheduler->semester) }} Semester Examination Timetable</title>
     <style>
         *{
             box-sizing: border-box;
@@ -38,7 +38,7 @@
 </head>
 <body>
     <div class="title">
-        <h1>NNAMDI AZIKIWE UNIVERSITY, AWKA<br />COMPUTER BASED TEST EXAM COLLATED<br />2022/2023 SECOND SEMESTER EXAMINATION TIMETABLE (REGULAR)</h1>
+        <h1>NNAMDI AZIKIWE UNIVERSITY, AWKA<br />COMPUTER BASED TEST EXAM COLLATED<br />{{ $session->name }} {{ ucfirst($scheduler->semester) }} Semester Examination Timetable (Regular)</h1>
     </div>
     <table>
         <thead>
@@ -49,27 +49,19 @@
             <th>Venue</th>
         </thead>
         <tbody>
-            <tr>
-                <td>Friday 1st December 2023</td>
-                <td>9-11am</td>
-                <td>CSC 100</td>
-                <td>100</td>
-                <td>Digital LIB</td>
-            </tr>
-            <tr>
-                <td>‎</td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-            </tr>
-            <tr>
-                <td>Friday 1st December 2023</td>
-                <td>9-11am</td>
-                <td>CSC 100</td>
-                <td>100</td>
-                <td>Digital LIB</td>
-            </tr>
+            @forelse($rows as $row)
+                <tr>
+                    <td>{{ $row['date'] }}</td>
+                    <td>{{ $row['time'] }}</td>
+                    <td>{{ $row['course'] }}</td>
+                    <td>{{ $row['students'] }}</td>
+                    <td>{{ $row['venue'] }}</td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="5">No courses have been uploaded for this session yet.</td>
+                </tr>
+            @endforelse
         </tbody>
     </table>
 </body>
