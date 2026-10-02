@@ -34,7 +34,7 @@ class SchedulerService{
     }
 
     public function liveGenerator(){
-        $courses = Course::currentSession()->get();
+        $courses = Course::currentSession()->with('department')->get();
         $courses_main = [];
         $grouped_courses = $courses->groupBy('name');
         foreach($grouped_courses as $key => $grouped_course){
@@ -84,6 +84,12 @@ class SchedulerService{
         $day_end_time = strtotime('14:00');
         $max_day_duration = $day_end_time - $day_start_time;
 
+        // Load every course's duration once instead of querying per batch entry
+        $durationLookup = Course::currentSession()
+            ->get(['name', 'students', 'duration'])
+            ->mapWithKeys(fn ($course) => ["{$course->name}|{$course->students}" => $course->duration])
+            ->all();
+
         $formattedData = [];
         $current_time = $day_start_time;
         $elapsed_today = 0;
@@ -94,8 +100,7 @@ class SchedulerService{
         foreach ($batches as $item) {
             $durations = [];
             foreach($item as $ite){
-                $course = Course::currentSession()->where('name', $ite['course'])->where('students', $ite['capacity'])->first();
-                $durations[] = $course->duration ?? 30;
+                $durations[] = $durationLookup["{$ite['course']}|{$ite['capacity']}"] ?? 30;
             }
             $mins = max($durations);
             // Format the time

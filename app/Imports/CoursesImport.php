@@ -29,15 +29,21 @@ class CoursesImport implements ToCollection
         // Get active session
         $session = Session::where('active', true)->firstOrFail();
 
+        // Load existing departments once, keyed by name, instead of querying per row
+        $departmentIds = Department::pluck('id', 'name')->all();
+
         // Process each item in the collection
-        $collection->each(function($item) use ($courseName, $session) {
-            // Create or retrieve department
-            $department = Department::firstOrCreate(['name' => $item[1]]);
+        $collection->each(function($item) use ($courseName, $session, &$departmentIds) {
+            $departmentName = $item[1];
+
+            if (!isset($departmentIds[$departmentName])) {
+                $departmentIds[$departmentName] = Department::create(['name' => $departmentName])->id;
+            }
 
             // Create or update course
-            $course = Course::updateOrCreate(
-                ['name' => $courseName, 'session_id' => $session->id, 'department_id' => $department->id],
-                ['department_id' => $department->id, 'students' => $item[2]]
+            Course::updateOrCreate(
+                ['name' => $courseName, 'session_id' => $session->id, 'department_id' => $departmentIds[$departmentName]],
+                ['department_id' => $departmentIds[$departmentName], 'students' => $item[2]]
             );
         });
 

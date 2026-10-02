@@ -38,9 +38,10 @@ class UploadController extends Controller
         }else{
             if($request->file('file')) {
                 $file = $request->file('file');
-                $filePath = $file->store('uploads/courses');
                 try{
-                    Excel::import(new CoursesImport($file->getClientOriginalName()), $filePath);
+                    // Read directly from the uploaded file instead of persisting a
+                    // permanent copy to storage/app that would otherwise never be cleaned up
+                    Excel::import(new CoursesImport($file->getClientOriginalName()), $file);
                     // Response
                     $data['success'] = 1;
                     $data['message'] = 'Your file was uploaded successfully!';

@@ -37,12 +37,10 @@ class SchedulerHelper{
         return $this;
     }
 
-    protected function flattenArray($array) {
-        $result = [];
-
+    protected function flattenArray($array, array &$result = []) {
         foreach ($array as $item) {
             if (is_array($item)) {
-                $result = array_merge($result, $this->flattenArray($item));
+                $this->flattenArray($item, $result);
             } else {
                 $result[] = $item;
             }
