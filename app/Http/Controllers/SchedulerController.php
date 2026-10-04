@@ -18,7 +18,13 @@ class SchedulerController extends Controller
 
     public function preview(){
         $session = Session::where('active', true)->first();
-        [$batches, $halls, $courses_main] = $this->schedulerService->liveGenerator();
+
+        try {
+            [$batches, $halls, $courses_main] = $this->schedulerService->liveGenerator();
+        } catch (\RuntimeException $e) {
+            return redirect()->route('venues.index')->with('error', $e->getMessage());
+        }
+
         $stats = [
             'department' => Department::count(),
             'course' => Course::where('session_id', $session->id)->count()
@@ -29,7 +35,13 @@ class SchedulerController extends Controller
 
     public function printSetup(){
         $session = Session::where('active', true)->first();
-        [$batches, $halls, $courses_main, $dailyBatches] = $this->schedulerService->liveGenerator();
+
+        try {
+            [$batches, $halls, $courses_main, $dailyBatches] = $this->schedulerService->liveGenerator();
+        } catch (\RuntimeException $e) {
+            return redirect()->route('venues.index')->with('error', $e->getMessage());
+        }
+
         $stats = [
             'department' => Department::count(),
             'course' => Course::where('session_id', $session->id)->count()
@@ -70,7 +82,11 @@ class SchedulerController extends Controller
             return redirect()->route('scheduler.print.setup')->with('error', 'Schedule setup not found.');
         }
 
-        [$batches, $halls, $courses_main, $dailyBatches] = $this->schedulerService->liveGenerator();
+        try {
+            [$batches, $halls, $courses_main, $dailyBatches] = $this->schedulerService->liveGenerator();
+        } catch (\RuntimeException $e) {
+            return redirect()->route('venues.index')->with('error', $e->getMessage());
+        }
 
         $rows = [];
         foreach ($dailyBatches as $day => $dayBatches) {

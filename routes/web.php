@@ -5,6 +5,7 @@ use App\Http\Controllers\PageController;
 use App\Http\Controllers\SchedulerController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\SessionController;
+use App\Http\Controllers\VenueController;
 
 /*
 |--------------------------------------------------------------------------
@@ -46,3 +47,4 @@ Route::controller(SchedulerController::class)->prefix('scheduler')->name('schedu
 });
 
 Route::resource('sessions', SessionController::class);
+Route::resource('venues', VenueController::class)->except(['show']);

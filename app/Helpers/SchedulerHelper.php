@@ -123,6 +123,8 @@ class SchedulerHelper{
      * itself, avoiding unbounded call-stack growth for large datasets.
      */
     public function createBatch($courses, $halls, $hall_index = 0, $course_index = 0, $n = 0, $batchMap = []) {
+        $hall_count = count($this->halls_data);
+
         while (true) {
             $course_name = $this->course_names[$n];
 
@@ -147,7 +149,7 @@ class SchedulerHelper{
 
                 if($courses[$course_index] == 0) $course_index++;
 
-                if($this->courses_dummy && $hall_index == 4){
+                if($this->courses_dummy && $hall_index == $hall_count){
                     $this->batches[] = $batchMap;
                 }
 
@@ -164,7 +166,7 @@ class SchedulerHelper{
                     break;
                 }
 
-                if($hall_index == 4){
+                if($hall_index == $hall_count){
                     $halls = array_column($this->halls_data, 1);
                     $this->batches[] = $batchMap;
                     $batchMap = [];

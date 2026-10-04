@@ -4,6 +4,7 @@ namespace App\Services;
 use App\Helpers\SchedulerHelper;
 use App\Models\Course;
 use App\Models\Session;
+use App\Models\Venue;
 use Illuminate\Support\Facades\Cache;
 
 class SchedulerService{
@@ -38,13 +39,16 @@ class SchedulerService{
     public function liveGenerator(){
         $session = Session::active()->first();
 
-        // Key the cache on the current course data's shape rather than a fixed
-        // TTL, so it's reused across requests but recomputes the moment a
-        // course is added, changed, or removed.
-        $fingerprint = Course::where('session_id', $session->id)
+        // Key the cache on the current course and venue data's shape rather than
+        // a fixed TTL, so it's reused across requests but recomputes the moment
+        // a course or venue is added, changed, or removed.
+        $courseFingerprint = Course::where('session_id', $session->id)
             ->selectRaw('COUNT(*) as cnt, MAX(updated_at) as latest')
             ->first();
-        $cacheKey = "scheduler.live_generator.{$session->id}.{$fingerprint->cnt}.{$fingerprint->latest}";
+        $venueFingerprint = Venue::selectRaw('COUNT(*) as cnt, MAX(updated_at) as latest')->first();
+        $cacheKey = "scheduler.live_generator.{$session->id}"
+            . ".{$courseFingerprint->cnt}.{$courseFingerprint->latest}"
+            . ".{$venueFingerprint->cnt}.{$venueFingerprint->latest}";
 
         return Cache::remember($cacheKey, now()->addHours(6), function () use ($session) {
             $courses = Course::where('session_id', $session->id)->with('department')->get();
@@ -58,9 +62,13 @@ class SchedulerService{
                 $courses_main[$key] = $departments;
             }
 
-            $halls_main = [
-                ["Hall 1", 120], ["Hall 2", 170], ["Hall 3", 75], ["Hall 4", 35]
-            ];
+            $halls_main = Venue::available()->get(['name', 'capacity'])
+                ->map(fn ($venue) => [$venue->name, $venue->capacity])
+                ->all();
+
+            if (empty($halls_main)) {
+                throw new \RuntimeException('No available venues have been configured. Add at least one venue before generating a time table.');
+            }
 
             // Pack each department-clash-free group of courses separately, so
             // two courses sharing a department are never assigned to the same

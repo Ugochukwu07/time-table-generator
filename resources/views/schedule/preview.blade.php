@@ -68,6 +68,9 @@
                                 <a class="my-2 text-success" href="{{ route('upload.stats.courses') }}">Courses({{ $stats['course'] }})</a>
                             </li>
                             <li class="d-block my-3">
+                                <a class="my-2 text-success" href="{{ route('venues.index') }}">Venues</a>
+                            </li>
+                            <li class="d-block my-3">
                                 <a class="my-2 text-success" href="{{ route('home') }}">Back Home ></a>
                             </li>
                             @if(!request()->is('scheduler/preview'))
