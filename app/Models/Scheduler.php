@@ -12,7 +12,12 @@ class Scheduler extends Model
     protected $fillable = [
         'session_id', 'start_date',
         'end_date', 'start_time',
-        'end_time', 'semester'
+        'end_time', 'semester',
+        'include_weekends'
+    ];
+
+    protected $casts = [
+        'include_weekends' => 'boolean',
     ];
 
     public function session(){

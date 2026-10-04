@@ -56,7 +56,7 @@
                                     @enderror                                </div>
                             </div>
                             <div class="row my-2">
-                                <div class="col-md-12">
+                                <div class="col-md-6">
                                     <label for="semester">Semester <span class="text-danger">*</span></label>
                                     <select class="form-control" name="semester" id="semester">
                                         <option @if(old('semester') == 'first') selected @endif value="first">First</option>
@@ -64,6 +64,15 @@
                                     </select>
                                     @error('semester')
                                         <small class="invalid-feedback d-block">Start Date is required</small>
+                                    @enderror                                </div>
+                                <div class="col-md-6">
+                                    <label for="include_weekends">Include Saturdays &amp; Sundays? <span class="text-danger">*</span></label>
+                                    <select class="form-control" name="include_weekends" id="include_weekends">
+                                        <option @if(old('include_weekends', '1') == '1') selected @endif value="1">Yes</option>
+                                        <option @if(old('include_weekends') == '0') selected @endif value="0">No, skip weekends</option>
+                                    </select>
+                                    @error('include_weekends')
+                                        <small class="invalid-feedback d-block">Please choose whether to include weekends</small>
                                     @enderror                                </div>
                             </div>
                             <div class="row my-2">
