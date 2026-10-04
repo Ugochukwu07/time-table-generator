@@ -62,11 +62,20 @@ class SchedulerService{
                 ["Hall 1", 120], ["Hall 2", 170], ["Hall 3", 75], ["Hall 4", 35]
             ];
 
-            $schedulerHelper = new SchedulerHelper($courses_main, $halls_main);
-            $batches = $schedulerHelper->setData()->execute();
+            // Pack each department-clash-free group of courses separately, so
+            // two courses sharing a department are never assigned to the same
+            // time slot (batch), avoiding students being double-booked.
+            $groups = SchedulerHelper::partitionByDepartmentClash($courses_main);
+
+            $batches = [];
+            $halls = array_column($halls_main, 1);
+            foreach ($groups as $groupCourses) {
+                $schedulerHelper = new SchedulerHelper($groupCourses, $halls_main);
+                $batches = array_merge($batches, $schedulerHelper->setData()->execute());
+                $halls = $schedulerHelper->halls;
+            }
 
             [$timed_batches, $dailyBatches] = $this->appendTimeToBatches($batches);
-            $halls = $schedulerHelper->halls;
 
             return [$timed_batches, $halls, $courses_main, $dailyBatches];
         });
