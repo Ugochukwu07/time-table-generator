@@ -3,6 +3,8 @@ namespace App\Services;
 
 use App\Helpers\SchedulerHelper;
 use App\Models\Course;
+use App\Models\Session;
+use Illuminate\Support\Facades\Cache;
 
 class SchedulerService{
     public function testGenerator(){
@@ -34,28 +36,40 @@ class SchedulerService{
     }
 
     public function liveGenerator(){
-        $courses = Course::currentSession()->with('department')->get();
-        $courses_main = [];
-        $grouped_courses = $courses->groupBy('name');
-        foreach($grouped_courses as $key => $grouped_course){
-            $departments = [];
-            foreach($grouped_course as $item){
-                $departments[$item->department->name] = $item->students;
+        $session = Session::active()->first();
+
+        // Key the cache on the current course data's shape rather than a fixed
+        // TTL, so it's reused across requests but recomputes the moment a
+        // course is added, changed, or removed.
+        $fingerprint = Course::where('session_id', $session->id)
+            ->selectRaw('COUNT(*) as cnt, MAX(updated_at) as latest')
+            ->first();
+        $cacheKey = "scheduler.live_generator.{$session->id}.{$fingerprint->cnt}.{$fingerprint->latest}";
+
+        return Cache::remember($cacheKey, now()->addHours(6), function () use ($session) {
+            $courses = Course::where('session_id', $session->id)->with('department')->get();
+            $courses_main = [];
+            $grouped_courses = $courses->groupBy('name');
+            foreach($grouped_courses as $key => $grouped_course){
+                $departments = [];
+                foreach($grouped_course as $item){
+                    $departments[$item->department->name] = $item->students;
+                }
+                $courses_main[$key] = $departments;
             }
-            $courses_main[$key] = $departments;
-        }
 
-        $halls_main = [
-            ["Hall 1", 120], ["Hall 2", 170], ["Hall 3", 75], ["Hall 4", 35]
-        ];
+            $halls_main = [
+                ["Hall 1", 120], ["Hall 2", 170], ["Hall 3", 75], ["Hall 4", 35]
+            ];
 
-        $schedulerHelper = new SchedulerHelper($courses_main, $halls_main);
-        $batches = $schedulerHelper->setData()->execute();
+            $schedulerHelper = new SchedulerHelper($courses_main, $halls_main);
+            $batches = $schedulerHelper->setData()->execute();
 
-        [$timed_batches, $dailyBatches] = $this->appendTimeToBatches($batches);
-        $halls = $schedulerHelper->halls;
+            [$timed_batches, $dailyBatches] = $this->appendTimeToBatches($batches);
+            $halls = $schedulerHelper->halls;
 
-        return [$timed_batches, $halls, $courses_main, $dailyBatches];
+            return [$timed_batches, $halls, $courses_main, $dailyBatches];
+        });
     }
 
     public function formatToHuman(array $data):array {
