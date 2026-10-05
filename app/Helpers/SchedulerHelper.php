@@ -1,17 +1,9 @@
 <?php
 namespace App\Helpers;
 
-use Illuminate\Support\Str;
-
 class SchedulerHelper{
     public array $halls;
-    public bool $courses_dummy;
-    public array $course_names;
     public array $batches;
-    public array $final_courses;
-    public int $total_capacity;
-    public int $total_students;
-    public int $number_of_batches;
 
     public function __construct(
         public array $courses_main, public array $halls_data
@@ -57,47 +49,9 @@ class SchedulerHelper{
 
     public function setData(){
         $this->halls = array_column($this->halls_data, 1);
-        $this->total_capacity = array_sum($this->halls);
-
-        $all_courses = array_map(function($course) {
-            return array_values($course);
-        }, $this->courses_main);
-
-        $this->course_names = array_keys($this->courses_main);
-
         $this->batches = [];
 
-        $this->final_courses = array_values($all_courses);
-        $this->total_students = array_sum($this->flattenArray($this->final_courses));
-
-        $this->number_of_batches = ceil($this->total_students/$this->total_capacity);
-
         return $this;
-    }
-
-    protected function flattenArray($array, array &$result = []) {
-        foreach ($array as $item) {
-            if (is_array($item)) {
-                $this->flattenArray($item, $result);
-            } else {
-                $result[] = $item;
-            }
-        }
-
-        return $result;
-    }
-
-    //function to check if the total capacity of halls and the total demand of courses are equal
-    protected function checkEquilibrium($halls, $courses) {
-        $this->courses_dummy = false;
-        if(array_sum($halls) < array_sum($courses)) {
-            $halls[] = array_sum($courses) - array_sum($halls);
-        }else if(array_sum($halls) > array_sum($courses)) {
-            $this->courses_dummy = true;
-            $courses[] = array_sum($halls) - array_sum($courses);
-        }
-
-        return [$halls, $courses];
     }
 
     //map batch
@@ -117,77 +71,80 @@ class SchedulerHelper{
     }
 
     /**
-     * Both recursive calls in the original implementation were tail calls
-     * (nothing ran after them but a break), so the recursion is unrolled
-     * here into a single loop that re-seeds its state instead of calling
-     * itself, avoiding unbounded call-stack growth for large datasets.
+     * Flattens courses_main into an ordered list of [course, department, students]
+     * chunks, skipping any zero-student entries. The department name travels
+     * with its chunk directly instead of being looked up later by array
+     * position, so it can never desync from the course it belongs to.
+     *
+     * @return array<int, array{0: string, 1: string, 2: int}>
      */
-    public function createBatch($courses, $halls, $hall_index = 0, $course_index = 0, $n = 0, $batchMap = []) {
-        $hall_count = count($this->halls_data);
+    protected function buildChunks(): array {
+        $chunks = [];
 
-        while (true) {
-            $course_name = $this->course_names[$n];
-
-            [$halls, $courses] = $this->checkEquilibrium($halls, $courses);
-
-            $equilibrium = array_sum($halls);
-            $assigned = 0;
-            $advance = false;
-
-            while ($equilibrium > $assigned) {
-                $assignment_value = min($halls[$hall_index], $courses[$course_index]);
-
-                $halls[$hall_index] -= $assignment_value;
-                $courses[$course_index] -= $assignment_value;
-                $assigned += $assignment_value;
-
-                $department  = array_keys($this->courses_main[$course_name])[$course_index];
-
-                $batchMap[] = $this->mapBatch($course_name, $this->halls_data[$hall_index][0], $assignment_value, $department, [$halls[$hall_index], $courses[$course_index]]);
-
-                if($halls[$hall_index] == 0) $hall_index++;
-
-                if($courses[$course_index] == 0) $course_index++;
-
-                if($this->courses_dummy && $hall_index == $hall_count){
-                    $this->batches[] = $batchMap;
+        foreach ($this->courses_main as $courseName => $departments) {
+            foreach ($departments as $departmentName => $students) {
+                if ($students > 0) {
+                    $chunks[] = [$courseName, $departmentName, $students];
                 }
-
-                if($course_index == count($courses)-1){
-                    if($n >= count($this->final_courses)-1){
-                        $this->batches[] = $batchMap;
-                        return;
-                    }
-                    $n++;
-
-                    $courses = $this->final_courses[$n];
-                    $course_index = 0;
-                    $advance = true;
-                    break;
-                }
-
-                if($hall_index == $hall_count){
-                    $halls = array_column($this->halls_data, 1);
-                    $this->batches[] = $batchMap;
-                    $batchMap = [];
-                    if(count($this->batches) > $this->number_of_batches){
-                        return;
-                    }
-
-                    $hall_index = 0;
-                    $advance = true;
-                    break;
-                }
-            }
-
-            if (!$advance) {
-                return;
             }
         }
+
+        return $chunks;
     }
 
+    /**
+     * Streams each course/department chunk of students across the halls in
+     * order, filling the current hall to capacity before moving to the next.
+     * Wrapping back to the first hall closes out one batch (time slot) and
+     * starts a new one with every hall refilled to its full capacity. A
+     * chunk's remaining demand carries seamlessly across hall and batch
+     * boundaries.
+     */
     public function execute(){
-        $this->createBatch($this->final_courses[0], $this->halls);
+        if (array_sum(array_column($this->halls_data, 1)) <= 0) {
+            throw new \RuntimeException('Configured halls have no usable capacity.');
+        }
+
+        $chunks = $this->buildChunks();
+        $hall_count = count($this->halls_data);
+
+        $hall_index = 0;
+        $hall_remaining = $this->halls_data[0][1];
+
+        $this->batches = [];
+        $currentBatch = [];
+
+        foreach ($chunks as [$course, $department, $remaining]) {
+            while ($remaining > 0) {
+                while ($hall_remaining === 0) {
+                    $hall_index++;
+
+                    if ($hall_index >= $hall_count) {
+                        $this->batches[] = $currentBatch;
+                        $currentBatch = [];
+                        $hall_index = 0;
+                    }
+
+                    $hall_remaining = $this->halls_data[$hall_index][1];
+                }
+
+                $assignment_value = min($remaining, $hall_remaining);
+                $remaining -= $assignment_value;
+                $hall_remaining -= $assignment_value;
+
+                $currentBatch[] = $this->mapBatch(
+                    $course,
+                    $this->halls_data[$hall_index][0],
+                    $assignment_value,
+                    $department,
+                    [$hall_remaining, $remaining]
+                );
+            }
+        }
+
+        if (!empty($currentBatch)) {
+            $this->batches[] = $currentBatch;
+        }
 
         return $this->batches;
     }
